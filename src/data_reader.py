@@ -15,6 +15,16 @@ def read_tasks(path, sheet_name="Tasks") -> pd.DataFrame:
     return df
 
 
+def read_all_tasks(path) -> pd.DataFrame:
+    """Read active + archived tasks (for charts that need the full picture)."""
+    active = read_tasks(path, "Tasks")
+    try:
+        archived = read_tasks(path, "Archived Tasks")
+    except ValueError:
+        archived = pd.DataFrame(columns=active.columns)
+    return pd.concat([active, archived], ignore_index=True)
+
+
 def read_updates(path, sheet_name="Weekly Updates") -> pd.DataFrame:
     df = _clean_columns(pd.read_excel(path, sheet_name=sheet_name))
     df = df.dropna(subset=["Task"])
@@ -22,7 +32,6 @@ def read_updates(path, sheet_name="Weekly Updates") -> pd.DataFrame:
     df["Team Member"] = df["Team Member"].str.strip()
     df["Task"] = df["Task"].str.strip()
     df["Hours Spent"] = pd.to_numeric(df["Hours Spent"], errors="coerce").fillna(0)
-    # Week column = Monday of the update week
     df["Week"] = df["Update Date"] - pd.to_timedelta(df["Update Date"].dt.weekday, unit="D")
     return df
 
@@ -34,6 +43,12 @@ def read_allocations(path, sheet_name="Allocations") -> pd.DataFrame:
     df["Team Member"] = df["Team Member"].str.strip()
     df["Task"] = df["Task"].str.strip()
     df["Planned Hours"] = pd.to_numeric(df["Planned Hours"], errors="coerce").fillna(0)
+
+    # Only keep current and future weeks (ignore past allocations)
+    today = pd.Timestamp.now().normalize()
+    current_monday = today - pd.Timedelta(days=today.weekday())
+    df = df[df["Week Starting"] >= current_monday]
+
     return df
 
 

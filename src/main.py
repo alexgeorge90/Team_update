@@ -9,14 +9,14 @@ from src.config import (
     DATA_FILE, WEEKLY_CAPACITY_HOURS, TEAM_MEMBERS,
     PAST_WEEKS, FUTURE_WEEKS, OUTPUT_DIR,
 )
-from src.data_reader import read_tasks, read_updates, read_allocations, resolve_task_statuses
+from src.data_reader import read_all_tasks, read_updates, read_allocations, resolve_task_statuses
 from src.chart_timeline import generate_gantt
 from src.chart_bandwidth import generate_bandwidth
 
 
 def main():
     print(f"Reading data from {DATA_FILE}...")
-    tasks_df = read_tasks(DATA_FILE)
+    tasks_df = read_all_tasks(DATA_FILE)
     updates_df = read_updates(DATA_FILE)
     allocations_df = read_allocations(DATA_FILE)
 
