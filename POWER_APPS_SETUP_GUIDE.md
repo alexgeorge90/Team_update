@@ -157,6 +157,28 @@ Patch(
   }
 );
 
+// Auto-add team member to Task's Team_Members if not already listed
+With(
+  {
+    currentTask: LookUp(Tasks, Task_Name = ddTask.Selected.Value),
+    memberName: ddTeamMember.Selected.Value
+  },
+  If(
+    Not(memberName in currentTask.Team_Members),
+    Patch(
+      Tasks,
+      currentTask,
+      {
+        Team_Members: If(
+          IsBlank(currentTask.Team_Members),
+          memberName,
+          currentTask.Team_Members & "; " & memberName
+        )
+      }
+    )
+  )
+);
+
 // Reset form
 Reset(ddTask);
 Reset(ddStatus);
@@ -169,6 +191,8 @@ Notify("Update submitted!", NotificationType.Success);
 ```
 
 > **Key: Filtered Task dropdown** -- The formula `Filter(Tasks, Status <> "Closed")` ensures closed tasks never appear in the dropdown. This solves the Excel limitation.
+
+> **Auto Team Members** -- The submit formula automatically appends the team member's name to the Task's Team_Members field if they aren't already listed. No need to manually maintain who's working on what -- it builds itself from actual updates.
 
 ### Step 3: Screen 2 -- PM Task Board (for PM)
 
