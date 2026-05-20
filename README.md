@@ -4,102 +4,175 @@ Generates two charts for the weekly leadership email:
 - **Task Timeline** (Gantt) -- each task's duration across months/quarters, color-coded by status
 - **Bandwidth Utilization** -- actual hours (past) and planned allocations (future) per team member
 
-## Quick Start
+---
+
+## Setup on a New Laptop (Step by Step)
+
+### Step 1: Install Python
+
+1. Go to https://www.python.org/downloads/
+2. Click the big **"Download Python 3.12.x"** button
+3. Run the installer
+4. **IMPORTANT:** Check the box that says **"Add python.exe to PATH"** at the bottom of the first screen
+5. Click **Install Now**
+6. Once done, close the installer
+
+**Verify:** Open a new PowerShell window (search "PowerShell" in Start menu) and type:
+```
+python --version
+```
+You should see something like `Python 3.12.10`. If you see "Python was not found", restart your laptop and try again.
+
+### Step 2: Download the Repository
+
+1. Go to https://github.com/alexgeorge90/Team_update
+2. Click the green **"Code"** button
+3. Click **"Download ZIP"**
+4. Extract the ZIP to a folder, e.g. `C:\Users\YourName\Team_update`
+
+Or if you have Git installed:
+```
+git clone https://github.com/alexgeorge90/Team_update.git
+```
+
+### Step 3: Open in VS Code
+
+1. Open VS Code
+2. File > Open Folder > select the `Team_update` folder
+3. Open a terminal in VS Code: **Terminal > New Terminal** (or press Ctrl+`)
+
+### Step 4: Create Virtual Environment and Install Dependencies
+
+Run these commands one by one in the VS Code terminal:
 
 ```powershell
-# Activate the virtual environment
+python -m venv .venv
+```
+
+```powershell
 .\.venv\Scripts\Activate.ps1
-
-# Generate charts from sample data
-python src/main.py
 ```
 
-Charts are saved to `output/task_timeline.png` and `output/bandwidth.png`.
+If you get a red error about "execution policy", run this first and then retry:
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+```
 
-## Configuration
+```powershell
+pip install -r requirements.txt
+```
 
-Copy `.env.example` to `.env` and update the path to your real Excel export:
+Wait for it to finish (it will download pandas, matplotlib, etc.).
+
+### Step 5: Create Your Config File
+
+1. In the project folder, find the file `.env.example`
+2. Copy it and rename the copy to `.env`
+3. Open `.env` and update if needed:
 
 ```
-DATA_FILE=C:\Users\alexg\OneDrive\Reports\team_data.xlsx
+DATA_FILE=sample_data/team_data.xlsx
 WEEKLY_CAPACITY_HOURS=40
-TEAM_MEMBERS=Alex,Bob,Carol
+TEAM_MEMBERS=Alex,Srikanth,Enith
 PAST_WEEKS=8
 FUTURE_WEEKS=4
 ```
 
-The Excel file has 3 tabs: **Tasks**, **Weekly Updates**, **Allocations**.
+For now, leave it as-is to test with sample data. Later, change `DATA_FILE` to point to your real Excel file.
 
-## SharePoint List Setup
+### Step 6: Generate Charts
 
-Create 3 SharePoint Lists on your site. Export all 3 to the same Excel workbook (or maintain a single workbook with 3 tabs that mirrors them). Below are the columns for each.
+```powershell
+python src/main.py
+```
 
-### List 1: Tasks
+You should see:
+```
+Reading data from ...\sample_data\team_data.xlsx...
+  Tasks: 5 rows
+  Updates: 42 rows
+  Allocations: 27 rows
 
-| Column | Type | Notes |
-|--------|------|-------|
-| Task Name | Single line of text | Required, enforce unique |
-| Description | Multiple lines of text | |
-| Team Members | Person or Group | Allow multiple selections |
-| Start Date | Date | Required |
-| Target End Date | Date | Required |
-| Status | Choice | Not Started, In Progress, On Track, At Risk, Blocked, Completed |
-| Dependency | Single line of text | |
-| Next Milestone | Single line of text | |
+Gantt chart saved to ...\output\task_timeline.png
+Bandwidth chart saved to ...\output\bandwidth.png
 
-### List 2: Weekly Updates
+Done! Charts are in the output/ folder.
+```
 
-| Column | Type | Notes |
-|--------|------|-------|
-| Update Date | Date | Default = today |
-| Team Member | Person | Single person |
-| Task | Lookup | From "Tasks" list, showing "Task Name" |
-| Status | Choice | On Track, At Risk, Blocked, Completed |
-| Progress | Multiple lines of text | |
-| Blockers | Multiple lines of text | Optional |
-| Hours Spent | Number | Min 0, max 80 |
+Open the `output/` folder to see your two chart images.
 
-### List 3: Allocations
+---
 
-| Column | Type | Notes |
-|--------|------|-------|
-| Week Starting | Date | Always use a Monday |
-| Team Member | Person | Single person |
-| Task | Lookup | From "Tasks" list, showing "Task Name" |
-| Planned Hours | Number | Min 0, max 60 |
+## Using Your Real Data
 
-### Exporting to Excel
+### Option A: Edit the Excel file directly
 
-You can either:
-1. **Maintain a single Excel workbook** with 3 tabs (Tasks, Weekly Updates, Allocations) that you keep in sync with SharePoint manually or via the Power App
-2. **Export each list separately** to Excel and combine into one workbook with 3 tabs
+1. Open `sample_data/team_data.xlsx` in Excel
+2. Replace the sample data with your real tasks, updates, and allocations
+3. The file has 3 tabs: **Tasks**, **Weekly Updates**, **Allocations**
+4. Dropdowns and validations are built in -- just use them
+5. Save and run `python src/main.py`
 
-Before running the script, refresh the data if using SharePoint-linked workbooks (open, Refresh All, save).
+### Option B: Point to a different Excel file
 
-## Power App Setup
+1. Put your Excel file anywhere (e.g., OneDrive folder)
+2. Edit `.env` and set `DATA_FILE` to the full path:
+   ```
+   DATA_FILE=C:\Users\YourName\OneDrive\Reports\team_data.xlsx
+   ```
+3. Run `python src/main.py`
 
-Create a Canvas App in Power Apps with two screens:
+### Regenerating the Template
 
-### Screen 1: Team Update
+If you need a fresh Excel template with all validations and sample data:
+```powershell
+python create_sample_data.py
+```
 
-- Connect to "Tasks" and "Weekly Updates" SharePoint Lists
-- Auto-detect user: `User().Email`
-- Gallery showing tasks where current user is in Team Members
-- Each card: Status dropdown, Progress text, Blockers text, Hours number
-- Submit button patches to "Weekly Updates" list
+---
 
-### Screen 2: PM Planning
+## Excel File Structure
 
-- Connect to "Tasks" and "Allocations" SharePoint Lists
-- Date picker for target week (snapped to Monday)
-- Grid: rows = team members x tasks, cells = planned hours
-- Totals per person per week, red if > 40h
-- Save button patches to "Allocations" list
+The workbook has 4 tabs:
 
-Publish the app and add it as a Teams tab. Set up a recurring Friday Teams message with the app link.
+### Tasks (managed by PM)
+| Column | Description |
+|--------|-------------|
+| Task ID | Auto-generated (T001, T002, ...) |
+| Task Name | Name of the task |
+| Description | What the task involves |
+| Team Members | Dropdown: pick 1, 2, or all 3 members |
+| Start Date | When work began |
+| Target End Date | Expected completion |
+| Status | Auto-filled from latest Weekly Update entry |
+
+### Weekly Updates (filled by team)
+| Column | Description |
+|--------|-------------|
+| Update Date | Date of the update |
+| Team Member | Dropdown: Alex, Srikanth, or Enith |
+| Task | Dropdown: picks from Tasks tab |
+| Status | Dropdown: On Track, At Risk, Blocked, Closed |
+| Progress | What was accomplished |
+| Blockers | Any blockers (optional) |
+| Hours Spent | Hours this week (0-80) |
+
+### Allocations (filled by PM)
+| Column | Description |
+|--------|-------------|
+| Week Starting | Monday of the target week |
+| Team Member | Dropdown |
+| Task | Dropdown: picks from Tasks tab |
+| Planned Hours | Target hours (0-60) |
+
+### Lookups (reference data, do not edit)
+Contains dropdown lists used by the other tabs.
+
+---
 
 ## Weekly Workflow
 
-1. **Friday**: Team fills updates in Power App (~2 min each)
-2. **Monday**: PM sets allocations in Power App, refreshes Excel exports, runs `python src/main.py`
-3. **Monday**: Copilot Agent drafts email, PM attaches the 2 chart PNGs, sends to leadership
+1. **Friday**: Team fills updates in Power App or directly in the Excel file (~2 min each)
+2. **Monday**: PM sets allocations for upcoming weeks
+3. **Monday**: Run `python src/main.py` to generate charts
+4. **Monday**: Copilot Agent drafts email, PM attaches the 2 chart PNGs, sends to leadership
